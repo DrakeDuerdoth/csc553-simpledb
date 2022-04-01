@@ -1,0 +1,6 @@
+Drake Duerdoth
+Lab 1
+
+I don’t have too much to talk about in terms of designs. There were quite a few basic methods where you just were returning an object. The only test that does not work is the last tuple one, which is expected. 
+The first lab was an awesome start for the lab. I had some difficulty with figuring out {srcbuild} being empty but got some help from a classmate. I also had some issues with figuring out the correct java build but figured that one out pretty quickly. 
+I say I spend about 7 hours on the lab. The hardest part was getting everything setup. Once everything was up and running, it was smooth sailing. can’t wait for this lab to get more complex!
