@@ -1,6 +1,7 @@
 package simpledb;
 
 import java.io.*;
+import java.util.HashMap;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -14,6 +15,9 @@ import java.io.*;
 public class BufferPool {
     /** Bytes per page, including header. */
     public static final int PAGE_SIZE = 4096;
+    
+    private HashMap<PageId, Page> cache;
+    private int maxNumPages;
 
     /** Default number of pages passed to the constructor. This is used by
     other classes. BufferPool should use the numPages argument to the
@@ -26,7 +30,8 @@ public class BufferPool {
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
-        // some code goes here
+    	maxNumPages = numPages;
+    	cache = new HashMap<PageId,Page>();
     }
 
     /**
@@ -44,11 +49,17 @@ public class BufferPool {
      * @param pid the ID of the requested page
      * @param perm the requested permissions on the page
      */
-    public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
+    public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
-    }
+    	if(cache.containsKey(pid)) return cache.get(pid);
+    	else {
+    		if(cache.size() >= maxNumPages) evictPage();
+    		DbFile dbFile = Database.getCatalog().getDbFile(pid.getTableId());
+    		Page newPage = dbFile.readPage(pid);
+    		cache.put(pid, newPage);
+    		return newPage;
+    		}
+        }
 
     /**
      * Releases the lock on a page.
