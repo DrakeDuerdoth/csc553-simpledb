@@ -13,13 +13,16 @@ import java.io.*;
  */
 public class HeapPage implements Page {
 
-    HeapPageId pid;
-    TupleDesc td;
-    byte header[];
-    Tuple tuples[];
-    int numSlots;
+    final HeapPageId pid;
+    final TupleDesc td;
+    final byte header[];
+    final Tuple tuples[];
+    final int numSlots;
 
     byte[] oldData;
+    private final Byte dataLock = new Byte ((byte) 0);
+    private boolean isDirty;
+    private TransactionId dirtyId;
 
     /**
      * Create a HeapPage from a set of bytes of data read from disk.
@@ -41,16 +44,18 @@ public class HeapPage implements Page {
         this.pid = id;
         this.td = Database.getCatalog().getTupleDesc(id.getTableId());
         this.numSlots = getNumTuples();
+        this.dirtyId = null;
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
 
         // allocate and read the header slots of this page
-        header = new byte[getHeaderSize()];
+        this.header = new byte[getHeaderSize()];
         for (int i=0; i<header.length; i++)
-            header[i] = dis.readByte();
+            this.header[i] = dis.readByte();
+        	tuples = new Tuple[numSlots];
+
 
         try{
             // allocate and read the actual records of this page
-            tuples = new Tuple[numSlots];
             for (int i=0; i<tuples.length; i++)
                 tuples[i] = readNextTuple(dis,i);
         }catch(NoSuchElementException e){
@@ -59,14 +64,17 @@ public class HeapPage implements Page {
         dis.close();
 
         setBeforeImage();
+        
+     
     }
 
     /** Retrieve the number of tuples on this page.
         @return the number of tuples on this page
     */
     private int getNumTuples() {        
-        // some code goes here
-        return 0;
+        int tupleSize = this.td.getSize();
+        int bufferPoolPageSize = BufferPool.PAGE_SIZE;
+        return (int) (Math.floor(bufferPoolPageSize*8) /(tupleSize *8+1));
 
     }
 
@@ -76,8 +84,7 @@ public class HeapPage implements Page {
      */
     private int getHeaderSize() {        
         
-        // some code goes here
-        return 0;
+    	return (int) Math.ceil((this.numSlots / 8));
                  
     }
     
@@ -85,7 +92,9 @@ public class HeapPage implements Page {
         -- used by recovery */
     public HeapPage getBeforeImage(){
         try {
+            
             return new HeapPage(pid,oldData);
+        
         } catch (IOException e) {
             e.printStackTrace();
             //should never happen -- we parsed it OK before!
@@ -102,8 +111,7 @@ public class HeapPage implements Page {
      * @return the PageId associated with this page.
      */
     public HeapPageId getId() {
-    // some code goes here
-    throw new UnsupportedOperationException("implement this");
+	    return this.pid;
     }
 
     /**
@@ -272,22 +280,30 @@ public class HeapPage implements Page {
      * Returns the number of empty slots on this page.
      */
     public int getNumEmptySlots() {
-        // some code goes here
-        return 0;
+    	int count = 0;
+    	for(int i = 0; i < this.getNumTuples(); i++) {
+    		if(!this.isSlotUsed(i)) count++;
+    	}
+    	return count;
     }
 
     /**
      * Returns true if associated slot on this page is filled.
      */
     public boolean isSlotUsed(int i) {
-        // some code goes here
-        return false;
+    	int byteNum = i / 8;
+    	int bitNum = i % 8;
+    	if(byteNum >= header.length || byteNum < 0) return false;
+    	byte byteWithSlot = header[byteNum];
+    	int bitMask = 1 << bitNum;
+    	return (byteWithSlot&bitMask) > 0;
     }
 
     /**
      * Abstraction to fill or clear a slot on this page.
      */
-    private void markSlotUsed(int i, boolean value) {
+    @SuppressWarnings("unused")
+	private void markSlotUsed(int i, boolean value) {
         // some code goes here
         // not necessary for lab1
     }
@@ -298,8 +314,16 @@ public class HeapPage implements Page {
      */
     public Iterator<Tuple> iterator() {
         // some code goes here
-        return null;
+        ArrayList<Tuple> tuples = new ArrayList<Tuple>();
+        for(int i = 0; i < this.numSlots; i++) {
+        	if(this.isSlotUsed(i)) {
+        		tuples.add(this.tuples[i]);
+        	}
+        }
+        return tuples.iterator();
     }
+    
+    
 
 }
 
