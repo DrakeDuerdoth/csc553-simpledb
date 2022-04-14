@@ -1,8 +1,9 @@
 package simpledb;
 
 import java.io.Serializable;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Tuple maintains information about the contents of a tuple. Tuples have a
@@ -22,12 +23,15 @@ public class Tuple implements Serializable {
      */
     private TupleDesc tdesc;
     private RecordId recId;
-    private Field[] fields;
+    List<Field> fieldValues;
     
     public Tuple(TupleDesc td) {
-        // some code goes here
-    	tdesc = td;
-    	fields = new Field[td.numFields()];
+    	this.tdesc = td;
+    	fieldValues = new ArrayList<Field>();
+    	for(int i = 0; i< td.numFields(); i++) {
+    		fieldValues.add(null);
+    	}
+    	
     	
     }
 
@@ -65,7 +69,7 @@ public class Tuple implements Serializable {
      *            new value for the field.
      */
     public void setField(int i, Field f) {
-    	fields[i] = f;
+    	fieldValues.set(i, f);
     }
 
     /**
@@ -75,7 +79,7 @@ public class Tuple implements Serializable {
      *            field index to return. Must be a valid index.
      */
     public Field getField(int i) {
-        return fields[i];
+        return fieldValues.get(i);
     }
 
     /**
@@ -87,12 +91,10 @@ public class Tuple implements Serializable {
      * where \t is any whitespace, except newline, and \n is a newline
      */
     public String toString() {
-      	String s = "";
-    	for (int i = 0; i < fields.length-1; i++){
-    		s += fields[i] + "\t";
-    	}
-    	s += fields[fields.length-1] + "\n";
-    	return s;
+      	StringBuilder s = new StringBuilder();
+    	for (Field field: fieldValues)
+    		s.append(field.toString()).append("\t");
+    	return s.append("\n").toString();
     }
     
     /**
@@ -101,6 +103,6 @@ public class Tuple implements Serializable {
      * */
     public Iterator<Field> fields()
     {
-       return Arrays.asList(fields).iterator();
+       return fieldValues.iterator();
     }
 }
